@@ -1,5 +1,5 @@
 {
-  "name": "first-plugin",
+  "name": "ui_generator",
   "id": "1214978636007916809",
   "api": "1.0.0",
   "main": "dist/code.js",

@@ -4,7 +4,7 @@ import React from 'react';
 const mockImageList = [
     {
         id: 1,
-        src: 'https://gw.alipayobjects.com/zos/rmsportal/JiqGstEfoWAOHiTxclqi.png',
+        src: 'http://127.0.0.1:5000/picture/1',
         title: 'Image 1',
         description: 'Image 1 description',
         height: 200,
