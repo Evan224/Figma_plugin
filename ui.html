@@ -22,10 +22,9 @@
   const pic1 = document.getElementById('pic1');
   const pic2 = document.getElementById('pic2');
 
-  console.log(pic1.files, 'pic1')
   pic1.addEventListener('dragend', e => {
 
-    console.log(e, 'e')
+    <!-- console.log(e, 'e') -->
     if (e.view.length === 0) return
 
     window.parent.postMessage(

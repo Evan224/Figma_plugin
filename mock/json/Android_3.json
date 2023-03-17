@@ -1,0 +1,72 @@
+{
+    "width": 720,
+    "height": 1280,
+    "elements": [
+        {
+            "type": "Input",
+            "text": "caviar",
+            "id": 0,
+            "left": 172,
+            "right": 550,
+            "top": 241,
+            "bottom": 338,
+            "width": 378,
+            "height": 97
+        },
+        {
+            "type": "Input",
+            "text": "Get food you want",
+            "id": 1,
+            "left": 186,
+            "right": 535,
+            "top": 928,
+            "bottom": 965,
+            "width": 349,
+            "height": 37
+        },
+        {
+            "type": "Input",
+            "text": "Order for delivery or pickup",
+            "id": 2,
+            "left": 171,
+            "right": 551,
+            "top": 1000,
+            "bottom": 1028,
+            "width": 380,
+            "height": 28
+        },
+        {
+            "type": "Input",
+            "text": "I already have an account",
+            "id": 3,
+            "left": 189,
+            "right": 534,
+            "top": 1227,
+            "bottom": 1255,
+            "width": 345,
+            "height": 28
+        },
+        {
+            "type": "TextButton",
+            "text": "Create Your Account",
+            "id": 4,
+            "left": 28,
+            "right": 692,
+            "top": 1111,
+            "bottom": 1196,
+            "width": 664,
+            "height": 85
+        },
+        {
+            "type": "Tool Bar",
+            "text": "",
+            "id": 5,
+            "left": 1,
+            "right": 720,
+            "top": 1,
+            "bottom": 36,
+            "width": 719,
+            "height": 35
+        }
+    ]
+}
