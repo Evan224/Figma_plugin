@@ -1,5 +1,5 @@
 import {Image} from 'antd';
-import React from 'react';
+import React,{useEffect} from 'react';
 
 const mockImageList = [
     {
@@ -44,6 +44,17 @@ const ImageList = () => {
         e.dataTransfer.setData('imageHeight', e.target.height);
         e.dataTransfer.setData('imageWidth', e.target.width);
     }
+
+    useEffect(() => {
+        const eventHandler = (e) => {
+            console.log('eventHandler', e);
+        }
+        window.addEventListener('message', eventHandler);
+        return () => {
+            window.removeEventListener('message', eventHandler);
+        }
+    }, []);
+
     return (
         <div className='flex flex-col'>
             {mockImageList.map((image) => {

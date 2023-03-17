@@ -45,6 +45,18 @@ figma.on("drop", (event: DropEvent) => {
 
   return false;
 });
+figma.on("selectionchange", () => {
+  // Check if the current selection is a rectangle
+  if (
+    figma.currentPage.selection.length === 1 &&
+    figma.currentPage.selection[0].type === "RECTANGLE"
+  ) {
+    // Send a message to your plugin
+    console.log("[plugin] rectangle clicked!!");
+    figma.ui.postMessage({ pluginMessage: { type: "rectangleClicked" } });
+  }
+});
+
 figma.showUI(
   `<script>window.location.href = "http://127.0.0.1:5173/"</script>"`,
 );
