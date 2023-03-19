@@ -1,14 +1,18 @@
 import {Image} from 'antd';
-import React,{useEffect} from 'react';
+import { Button } from 'antd';
+import React,{useEffect,useState} from 'react';
 const BASIC_URL = "http://127.0.0.1:5000/";
+const DEFAULT_WIDTH = 144;
+const DEFAULT_HEIGHT = 256;
+import { useNavigate } from 'react-router-dom';
 
 // UI list shuold also contain the according JSON description, thus need a name
 const mockUIList = [
     {
         id: 1,
         name: 'Android_1',
-        height: 200,
-        width: 200,
+        height: DEFAULT_HEIGHT,
+        width: DEFAULT_WIDTH,
     },
     {
         id: 2,
@@ -29,37 +33,38 @@ const mockUIList = [
 ];
 
 const UIList = () => {
-    const handleDragEnd = (e) => {
-        //set the type
-        // e.dataTransfer.type('type', 'ui');
-        console.log(e.target,"e.target")
+    const [uiList, setUIList] = useState(mockUIList);
+    const navigate = useNavigate();
+    const handleDragEnd = (e,name) => {
+        // console.log(name,"name")
+        e.dataTransfer.setData('name', name);
         e.dataTransfer.setData('filename', e.target.src);
-        e.dataTransfer.setData('imageHeight', e.target.height);
-        e.dataTransfer.setData('imageWidth', e.target.width);
+        e.dataTransfer.setData('imageHeight', e.target.height*10);
+        e.dataTransfer.setData('imageWidth', e.target.width*10);
     }
 
     useEffect(() => {
         const eventHandler = (e) => {
-            console.log(e,"e")
             if(!e.data.pluginMessage) {
                 return;
             }
+            
             const {type=null, data} = e.data.pluginMessage;
-            if (type !== 'uiSelectionChanged') {
-                return;
+            if (type == 'uiSelectionChanged') {
+                const blob = new Blob([data], { type: 'image/png' });
+                // create a FormData object to send the Blob data to the server
+                const formData = new FormData();
+                formData.append('image', blob);
+                fetch('http://127.0.0.1:5000/api/image', {
+                    method: 'POST',
+                    body: formData
+                }).then((response) => {
+                    console.log(response,"response")
+                }).catch((error) => {
+                    console.log(error,"error")
+                })
             }
-            const blob = new Blob([data], { type: 'image/png' });
-            // create a FormData object to send the Blob data to the server
-            const formData = new FormData();
-            formData.append('image', blob);
-            fetch('http://127.0.0.1:5000/api/image', {
-                method: 'POST',
-                body: formData
-            }).then((response) => {
-                console.log(response,"response")
-            }).catch((error) => {
-                console.log(error,"error")
-            })
+
         }
         window.addEventListener('message', eventHandler);
         return () => {
@@ -69,22 +74,39 @@ const UIList = () => {
 
     useEffect(() => {
         // get the real image data from the server
+        fetch(BASIC_URL + "api/imageList").then((response) => response.json()).then((data)=>{
+            console.log(data,"data")
+            const mappedData = data.imageList.map((item,index) => {
+                return {
+                    id: index,
+                    name: item.slice(0,-4),
+                    height: DEFAULT_HEIGHT,
+                    width: DEFAULT_WIDTH,
+                }
+            })
+            setUIList(mappedData)
+        }).catch((error) => {
+            console.log(error,"error")
+        })
 
     },[])
 
-    return (
+    return (     
         <div className='flex flex-col'>
-            {mockUIList.map((image,index) => {
+            {uiList.map((image,index) => {
                 return (
-                    <div className='m-2' key={image.id} >
+                    <div className='m-2 flex items-center' key={image.id} >
                         <Image
                         key={image.id}
                         src={BASIC_URL +"picture/"+image.name}
                         height={image.height}
                         width={image.width}
-                        onDragStart={handleDragEnd}
+                        onDragStart={(e)=>handleDragEnd(e,image.name)}
                         preview={false}
                         />
+                        <Button onClick={() => {
+                            navigate('/ui/'+image.name)
+                        } }>choose</Button>
                     </div>
                 )
             })}

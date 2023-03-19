@@ -19,11 +19,13 @@ figma.on("drop", (event: DropEvent) => {
   const height = Number(items[3].data) || 100;
   const width = Number(items[2].data) || 100;
   const pictureSrc = items[4].data;
+  const name = items[5].data;
 
-  const rectangle = figma.createRectangle();
-  rectangle.resize(height, width); // Set the size of the rectangle
-  rectangle.x = event.absoluteX;
-  rectangle.y = event.absoluteY;
+  const component = figma.createComponent();
+  component.resize(height, width); // Set the size of the rectangle
+  component.x = event.absoluteX;
+  component.y = event.absoluteY;
+  component.name = name;
   console.log("[plugin] rectangle", pictureSrc);
   fetch(pictureSrc)
     .then((response) => response.arrayBuffer())
@@ -34,7 +36,7 @@ figma.on("drop", (event: DropEvent) => {
         scaleMode: "FILL",
         imageHash: imageHash,
       };
-      rectangle.fills = [imagePaint];
+      component.fills = [imagePaint];
     })
     .catch((error) => console.log(error));
 
@@ -54,6 +56,58 @@ figma.on("selectionchange", async () => {
   }
 });
 
+figma.on("documentchange", () => {
+  const node = figma.currentPage.findAll((node) => {
+    return node.type === "RECTANGLE";
+  });
+  const element_list = node.map((node) => {
+    return {
+      height: node.height,
+      width: node.width,
+      left: node.x,
+      top: node.y,
+      id: node.name,
+    };
+  });
+
+  figma.ui.postMessage({
+    type: "uiElementChanged",
+    data: element_list,
+  });
+});
+
+figma.ui.onmessage = (message) => {
+  const elementInfo = message.elementInfo;
+  const { element_name, height, width, left, top, ui_name, src, id } =
+    elementInfo;
+  const ui_component = figma.currentPage.findChild((node) =>
+    node.name === ui_name && node.type === "COMPONENT"
+  );
+
+  const rectangle = figma.createRectangle();
+  rectangle.resize(height, width); // Set the size of the rectangle
+  rectangle.x = left;
+  rectangle.y = top;
+  rectangle.name = String(id);
+
+  ui_component!.appendChild(rectangle);
+  fetch(src)
+    .then((response) => response.arrayBuffer())
+    .then((buffer) => {
+      const imageHash = figma.createImage(new Uint8Array(buffer)).hash;
+      const imagePaint = {
+        type: "IMAGE",
+        scaleMode: "FILL",
+        imageHash: imageHash,
+      };
+      rectangle.fills = [imagePaint];
+    })
+    .catch((error) => console.log(error));
+};
+
+//# resize the UI to 375 675
 figma.showUI(
   `<script>window.location.href = "http://127.0.0.1:5173/"</script>"`,
 );
+
+figma.ui.resize(375, 675);
