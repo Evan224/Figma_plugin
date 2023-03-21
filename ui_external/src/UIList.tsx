@@ -92,7 +92,7 @@ const UIList = () => {
     },[])
 
     return (     
-        <div className='flex flex-col'>
+        <div className='flex flex-wrap w-[86vw] mx-auto justify-betweeen'>
             {uiList.map((image,index) => {
                 return (
                     <div className='m-2 flex items-center' key={image.id} >
@@ -103,10 +103,14 @@ const UIList = () => {
                         width={image.width}
                         onDragStart={(e)=>handleDragEnd(e,image.name)}
                         preview={false}
-                        />
-                        <Button onClick={() => {
+                        className='cursor-pointer shadow-lg'
+                        onDoubleClick={() => {
                             navigate('/ui/'+image.name)
-                        } }>choose</Button>
+                        }}
+                        />
+                        {/* <Button onClick={() => {
+                            navigate('/ui/'+image.name)
+                        } }>choose</Button> */}
                     </div>
                 )
             })}

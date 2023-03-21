@@ -36,9 +36,6 @@ def serve_element(pic_name):
 
 @app.route('/json/<string:pic_name>')
 def serve_json(pic_name):
-    if pic_name in json_dicts:
-        print('cache hit')
-        return json_dicts[pic_name]
     filename = f'{pic_name}.json'
     with open(f'../mock/json/{filename}', 'rb') as f:
         file_contents = json.load(f)
@@ -47,6 +44,35 @@ def serve_json(pic_name):
     print(response, type(response))
     response.headers['Access-Control-Allow-Origin'] = '*'  # CORS
     return jsonify(json_dicts[pic_name])
+
+
+@app.route('/recommend', methods=['POST'])
+def recommend_json():
+    # Get the JSON file from the request
+    json_file = request.get_json()
+
+    element_list = json_file['elementList']
+    fixed_element_list = json_file["fixedElementList"]
+    # print(element_list)
+
+    # mock recommend algorithm
+    for element in fixed_element_list:
+        # if element["id"] can be found in element_list, continue
+        if element["id"] in [element["id"] for element in element_list]:
+            continue
+        # else, random the element["top"] and element["left"] between 0 and 1000
+        else:
+            element["top"] = np.random.randint(0, 1000)
+            element["left"] = np.random.randint(0, 1000)
+            element["width"] = np.random.randint(100, 300)
+            element["height"] = np.random.randint(100, 300)
+            element_list.append(element)
+
+    # print('-----------------')
+    # print(element_list)
+
+    # Return the modified JSON file
+    return jsonify(fixed_element_list)
 
 
 @app.route('/api/imageList', methods=['GET'])

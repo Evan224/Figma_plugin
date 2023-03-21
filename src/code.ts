@@ -1,6 +1,6 @@
 const BASIC_URL = "http://127.0.0.1:5000/";
 
-async function invertImages(node) {
+async function invertImages(node: any) {
   // console.log("[plugin] invertImages", node);
   for (const paint of node.fills) {
     if (paint.type === "IMAGE") {
@@ -17,14 +17,16 @@ figma.on("drop", (event: DropEvent) => {
   const { items } = event;
   console.log("[plugin] items", items);
   const height = Number(items[3].data) || 100;
-  const width = Number(items[2].data) || 100;
-  const pictureSrc = items[4].data;
-  const name = items[5].data;
-
+  const width = Number(items[4].data) || 100;
+  const pictureSrc = items[5].data;
+  const name = items[7].data;
+  const relativex = Number(items[6].data);
+  const relativey = Number(items[2].data);
+  console.log(relativex, relativey, height, width, pictureSrc, name, "name");
   const component = figma.createComponent();
-  component.resize(height, width); // Set the size of the rectangle
-  component.x = event.absoluteX;
-  component.y = event.absoluteY;
+  component.resize(width, height); // Set the size of the rectangle
+  component.x = event.absoluteX - relativex;
+  component.y = event.absoluteY - relativey;
   component.name = name;
   console.log("[plugin] rectangle", pictureSrc);
   fetch(pictureSrc)
@@ -36,7 +38,7 @@ figma.on("drop", (event: DropEvent) => {
         scaleMode: "FILL",
         imageHash: imageHash,
       };
-      component.fills = [imagePaint];
+      component.fills = [imagePaint as Paint];
     })
     .catch((error) => console.log(error));
 
@@ -56,10 +58,30 @@ figma.on("selectionchange", async () => {
   }
 });
 
-figma.on("documentchange", () => {
+function throttle<T extends (...args: any[]) => void>(
+  func: T,
+  limit: number,
+): T {
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+
+  return function (this: any, ...args: Parameters<T>): void {
+    if (!timeout) {
+      func.apply(this, args);
+      timeout = setTimeout(() => {
+        timeout = null;
+      }, limit);
+    }
+  } as T;
+}
+
+const documentChangeHandler = throttle(() => {
+  // if selection is not a rectangle, return
+  if (figma.currentPage.selection[0]?.type !== "RECTANGLE") return;
+
   const node = figma.currentPage.findAll((node) => {
     return node.type === "RECTANGLE";
   });
+
   const element_list = node.map((node) => {
     return {
       height: node.height,
@@ -74,7 +96,9 @@ figma.on("documentchange", () => {
     type: "uiElementChanged",
     data: element_list,
   });
-});
+}, 1000);
+
+figma.on("documentchange", documentChangeHandler);
 
 figma.ui.onmessage = (message) => {
   const elementInfo = message.elementInfo;
@@ -82,7 +106,7 @@ figma.ui.onmessage = (message) => {
     elementInfo;
   const ui_component = figma.currentPage.findChild((node) =>
     node.name === ui_name && node.type === "COMPONENT"
-  );
+  ) as ComponentNode;
 
   const rectangle = figma.createRectangle();
   rectangle.resize(height, width); // Set the size of the rectangle
@@ -90,6 +114,7 @@ figma.ui.onmessage = (message) => {
   rectangle.y = top;
   rectangle.name = String(id);
 
+  // ignore if ui component is not found
   ui_component!.appendChild(rectangle);
   fetch(src)
     .then((response) => response.arrayBuffer())
@@ -100,7 +125,7 @@ figma.ui.onmessage = (message) => {
         scaleMode: "FILL",
         imageHash: imageHash,
       };
-      rectangle.fills = [imagePaint];
+      rectangle.fills = [imagePaint as Paint];
     })
     .catch((error) => console.log(error));
 };
@@ -110,4 +135,4 @@ figma.showUI(
   `<script>window.location.href = "http://127.0.0.1:5173/"</script>"`,
 );
 
-figma.ui.resize(375, 675);
+figma.ui.resize(375, 500);
