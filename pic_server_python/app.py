@@ -62,15 +62,15 @@ def recommend_json():
             continue
         # else, random the element["top"] and element["left"] between 0 and 1000
         else:
-            element["top"] = np.random.randint(0, 1000)
-            element["left"] = np.random.randint(0, 1000)
+            element["top"] = np.random.randint(0, 2770)
+            element["left"] = np.random.randint(0, 1440)
             element["width"] = np.random.randint(100, 300)
             element["height"] = np.random.randint(100, 300)
             element_list.append(element)
 
     # print('-----------------')
     # print(element_list)
-
+    time.sleep(1)
     # Return the modified JSON file
     return jsonify(fixed_element_list)
 

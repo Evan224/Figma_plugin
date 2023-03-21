@@ -6,6 +6,7 @@ const DEFAULT_HEIGHT = 256;
 import { useParams } from 'react-router-dom';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
+import { Spin } from 'antd';
 
 const mockElementList = [
     {
@@ -44,6 +45,7 @@ const mockElementList = [
 
 export default function ElementPage() {
   const {ui} = useParams();
+  const [loading, setLoading] = useState(false);
   // only need the element list to change. The text is not changable, and the point is to modify the location.
   // fake element list for now
   const [fixedElementList, setFixedElementList] = useState(mockElementList);
@@ -105,15 +107,15 @@ export default function ElementPage() {
             fixedElementList:fixedElementList
         })
       };
-      
+    setLoading(true);
     fetch(BASIC_URL +"recommend", options)
     .then(response => response.json())
     .then(data => {
         console.log(data);
-        // setFixedElementList(data);
+        setFixedElementList(data);
     })
     .finally(() => {
-
+        setLoading(false);
     })
     
   }, [elementList]);
@@ -122,7 +124,6 @@ export default function ElementPage() {
 
   useEffect(() => {
     const eventHandler = (e) => {
-        console.log('eventHandler',e)
         if(!e.data.pluginMessage) {
             return;
         }
@@ -168,22 +169,25 @@ export default function ElementPage() {
         onDragStart={(e)=>handleDragEnd(e,ui)}
         className='shadow-lg my-2'
         />
+        {loading && <Spin spinning={loading} className="my-10"/>}
         
-        <div className='flex my-5 w-[95vw] flex-wrap'>
+        {!loading && <div className='flex my-5 w-[95vw] flex-wrap'>
             {fixedElementList.map((item,index) => {
                 // if item.id is found in the elementList, then we don't need to render the element
                 const isFound = elementList.find(element => element.id === item.id);
                 if(isFound) {
                     return null;
                 }
+                const height=200;
+                const width=height*item.width/item.height;
                 return (
                     
-                    <div className='m-2' key={item.id} >
+                    <div className='w-1/2 flex justify-center' key={item.id} >
                         <Image
                             key={item.id}
                             src={BASIC_URL +"element/"+item.element_name}
-                            height={item.height}
-                            width={item.width}
+                            height={height}
+                            width={width}
                             preview={false}
                             onDoubleClick={(e)=>{handleDoubleClick(e,item.id)}}
                             id={item.element_name}
@@ -191,7 +195,7 @@ export default function ElementPage() {
                     </div>
                 )
             })}
-        </div>
+        </div>}
 
         
     </div>

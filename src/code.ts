@@ -76,7 +76,9 @@ function throttle<T extends (...args: any[]) => void>(
 
 const documentChangeHandler = throttle(() => {
   // if selection is not a rectangle, return
-  if (figma.currentPage.selection[0]?.type !== "RECTANGLE") return;
+  console.log('--->"documentchange"');
+  // if
+  // if (figma.currentPage.selection[0]?.type !== "RECTANGLE") return;
 
   const node = figma.currentPage.findAll((node) => {
     return node.type === "RECTANGLE";

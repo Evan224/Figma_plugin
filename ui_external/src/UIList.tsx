@@ -59,7 +59,7 @@ const UIList = () => {
                     method: 'POST',
                     body: formData
                 }).then((response) => {
-                    console.log(response,"response")
+                    // console.log(response,"response")
                 }).catch((error) => {
                     console.log(error,"error")
                 })
@@ -75,7 +75,6 @@ const UIList = () => {
     useEffect(() => {
         // get the real image data from the server
         fetch(BASIC_URL + "api/imageList").then((response) => response.json()).then((data)=>{
-            console.log(data,"data")
             const mappedData = data.imageList.map((item,index) => {
                 return {
                     id: index,
