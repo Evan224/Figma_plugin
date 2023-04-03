@@ -5,6 +5,7 @@ const BASIC_URL = "http://127.0.0.1:5000/";
 const DEFAULT_WIDTH = 144;
 const DEFAULT_HEIGHT = 256;
 import { useNavigate } from 'react-router-dom';
+import Slider from "@madzadev/image-slider";
 
 // UI list shuold also contain the according JSON description, thus need a name
 const mockUIList = [
@@ -32,16 +33,23 @@ const mockUIList = [
     }
 ];
 
+
+
 const UIList = () => {
     const [uiList, setUIList] = useState(mockUIList);
     const navigate = useNavigate();
     const handleDragEnd = (e,name) => {
-        // console.log(name,"name")
         e.dataTransfer.setData('name', name);
         e.dataTransfer.setData('filename', e.target.src);
         e.dataTransfer.setData('imageHeight', e.target.height*10);
         e.dataTransfer.setData('imageWidth', e.target.width*10);
     }
+
+    const images = [
+        { url: "https://picsum.photos/seed/a/1600/900" },
+        { url: "https://picsum.photos/seed/b/1920/1080" },
+        { url: "https://picsum.photos/seed/c/1366/768" },
+      ];
 
     useEffect(() => {
         const eventHandler = (e) => {
@@ -90,6 +98,10 @@ const UIList = () => {
 
     },[])
 
+    const imageList = uiList.map((image,index) => {
+        return {url:BASIC_URL +"picture/"+image.name}
+    })
+
     return (     
         <div className='flex flex-wrap w-[86vw] mx-auto justify-betweeen'>
             {uiList.map((image,index) => {
@@ -107,6 +119,9 @@ const UIList = () => {
                             navigate('/ui/'+image.name)
                         }}
                         />
+                        {/* <div className='flex'>
+                            <Slider imageList={images} width={1000} height={300} />
+                        </div> */}
                         {/* <Button onClick={() => {
                             navigate('/ui/'+image.name)
                         } }>choose</Button> */}

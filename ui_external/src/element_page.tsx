@@ -7,6 +7,7 @@ import { useParams } from 'react-router-dom';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { Spin } from 'antd';
+import { Button, Modal } from 'antd';
 
 const mockElementList = [
     {
@@ -63,7 +64,6 @@ export default function ElementPage() {
   
     const relativeX = cursorX - imageX;
     const relativeY = cursorY - imageY;
-    console.log(relativeX,relativeY,"relativeX,relativeY")
     e.dataTransfer.setData('name', name);
     e.dataTransfer.setData('filename', e.target.src);
     e.dataTransfer.setData('imageHeight', e.target.height*10);
@@ -73,11 +73,14 @@ export default function ElementPage() {
 }
 
   const handleDoubleClick = (event,id) => {
+    // get the element from the fixedElementList
     const element = fixedElementList.find(item => item.id === id);
     // filter the element from the in the fixedElementList that is 
     if(!element) {
         return;
     }
+
+
     const elementInfo = {
         id: element.id,
         element_name: element.element_name,
@@ -90,37 +93,29 @@ export default function ElementPage() {
     }
 
     // filter whihc id is not in the elementList
-    setElementList(elementList=>[...elementList,element]);
+    const newList=[...elementList,element]
+    setElementList(newList);
+    setLoading(true);
 
-    parent.postMessage({ pluginMessage: { elementInfo },type:"autoSetLocation",pluginId:"1214978636007916809" }, '*');
-  };
-
-  useEffect(() => {
-    console.log('elementList',elementList,'------------------')
     const options = {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+            "Content-Type": "application/json"
         },
         body: JSON.stringify({
-            elementList:elementList,
-            fixedElementList:fixedElementList
+            elementList:newList,
+            ui:ui,
+            element:element
         })
-      };
-    setLoading(true);
-    fetch(BASIC_URL +"recommend", options)
-    .then(response => response.json())
-    .then(data => {
-        console.log(data);
-        setFixedElementList(data);
-    })
-    .finally(() => {
+    };
+    fetch(BASIC_URL +"target", options).then(response => response.json()).then(data => {
+        parent.postMessage({ pluginMessage: { elementInfo },type:"autoSetLocation",pluginId:"1214978636007916809" }, '*');
+    }).finally(() => {
         setLoading(false);
-    })
-    
-  }, [elementList]);
+    });
 
 
+  };
 
   useEffect(() => {
     const eventHandler = (e) => {
@@ -130,10 +125,14 @@ export default function ElementPage() {
         const {type=null, data} = e.data.pluginMessage;
         if (type == 'uiElementChanged') {
             // convert the id string to number
-            const elementList = data.map(item => {
+            let elementList=[];
+            data.map(item => {
                 item.id = parseInt(item.id);
-                return item;
+                if(item.parent_name === ui){
+                    elementList.push(item);
+                }
             })
+            console.log(elementList,"elementList")
             setElementList(elementList);
         }
     }
@@ -142,6 +141,10 @@ export default function ElementPage() {
         window.removeEventListener('message', eventHandler);
     }
     }, []);
+
+  useEffect(() => {
+    parent.postMessage({ pluginMessage: {type:"initializeList"},pluginId:"1214978636007916809" }, '*');
+  },[]);
 
   useEffect(() => {
     // fetch the json file
@@ -169,9 +172,19 @@ export default function ElementPage() {
         onDragStart={(e)=>handleDragEnd(e,ui)}
         className='shadow-lg my-2'
         />
-        {loading && <Spin spinning={loading} className="my-10"/>}
+        {loading && (
+        <>
+            <div className="fixed inset-0 bg-black bg-opacity-50 z-10"></div>
+            <Spin
+            spinning={loading}
+            size="large"
+            className="fixed z-20 left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2"
+            />
+        </>
+        )}
+
         
-        {!loading && <div className='flex my-5 w-[95vw] flex-wrap'>
+        <div className='flex my-5 w-[95vw] flex-wrap'>
             {fixedElementList.map((item,index) => {
                 // if item.id is found in the elementList, then we don't need to render the element
                 const isFound = elementList.find(element => element.id === item.id);
@@ -195,7 +208,7 @@ export default function ElementPage() {
                     </div>
                 )
             })}
-        </div>}
+        </div>
 
         
     </div>
