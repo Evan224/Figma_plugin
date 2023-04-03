@@ -9,49 +9,48 @@ import { useNavigate } from 'react-router-dom';
 import { Spin } from 'antd';
 import { Button, Modal } from 'antd';
 
-const mockElementList = [
-    {
-        element_name:"pic1",
-        id:1,
-        height:100,
-        width:100,
-        left:200,
-        top:200,
-    },
-    {
-        element_name:"pic2",
-        id:2,
-        height:100,
-        width:100,
-        left:400,
-        top:300,
-    },
-    {
-        element_name:"pic3",
-        id:3,
-        height:100,
-        width:100,
-        left:400,
-        top:400,
-    },
-    {
-        element_name:"pic4",
-        id:4,
-        height:100,
-        width:100,
-        left:500,
-        top:500,
-    }
-]
+// const mockElementList = [
+//     {
+//         element_name:"pic1",
+//         id:1,
+//         height:100,
+//         width:100,
+//         left:200,
+//         top:200,
+//     },
+//     {
+//         element_name:"pic2",
+//         id:2,
+//         height:100,
+//         width:100,
+//         left:400,
+//         top:300,
+//     },
+//     {
+//         element_name:"pic3",
+//         id:3,
+//         height:100,
+//         width:100,
+//         left:400,
+//         top:400,
+//     },
+//     {
+//         element_name:"pic4",
+//         id:4,
+//         height:100,
+//         width:100,
+//         left:500,
+//         top:500,
+//     }
+// ]
 
 export default function ElementPage() {
   const {ui} = useParams();
   const [loading, setLoading] = useState(false);
   // only need the element list to change. The text is not changable, and the point is to modify the location.
   // fake element list for now
-  const [fixedElementList, setFixedElementList] = useState(mockElementList);
+  const [fixedElementList, setFixedElementList] = useState([]);
   const [elementList, setElementList] = useState<any>([])
-  const [fileredElementList, setFileredElementList] = useState<any>([])
   const navigate = useNavigate();
   const handleDragEnd = (e,name) => {
     const cursorX = e.clientX;
@@ -118,6 +117,19 @@ export default function ElementPage() {
   };
 
   useEffect(() => {
+    // fetch the json file
+    fetch(BASIC_URL +"json/"+ui)
+    .then(response => response.json())
+    .then(data => {
+        //todo
+        console.log(data)
+        if(data?.elements){
+            setFixedElementList(data.elements);
+        }
+    })
+  }, []);
+
+  useEffect(() => {
     const eventHandler = (e) => {
         if(!e.data.pluginMessage) {
             return;
@@ -132,7 +144,6 @@ export default function ElementPage() {
                     elementList.push(item);
                 }
             })
-            console.log(elementList,"elementList")
             setElementList(elementList);
         }
     }
@@ -146,14 +157,15 @@ export default function ElementPage() {
     parent.postMessage({ pluginMessage: {type:"initializeList"},pluginId:"1214978636007916809" }, '*');
   },[]);
 
-  useEffect(() => {
-    // fetch the json file
-    fetch(BASIC_URL +"json/"+ui)
-    .then(response => response.json())
-    .then(data => {
-        //todo
-    })
-  }, []);
+//   useEffect(() => {
+//     // fetch the json file
+//     fetch(BASIC_URL +"json/"+ui)
+//     .then(response => response.json())
+//     .then(data => {
+//         //todo
+//     })
+//   }, []);
+  
 
 
   
@@ -198,7 +210,7 @@ export default function ElementPage() {
                     <div className='w-1/2 flex justify-center' key={item.id} >
                         <Image
                             key={item.id}
-                            src={BASIC_URL +"element/"+item.element_name}
+                            src={BASIC_URL +"element/"+ui+"/"+item.id}
                             height={height}
                             width={width}
                             preview={false}

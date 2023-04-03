@@ -8,35 +8,12 @@ import { useNavigate } from 'react-router-dom';
 import Slider from "@madzadev/image-slider";
 
 // UI list shuold also contain the according JSON description, thus need a name
-const mockUIList = [
-    {
-        id: 1,
-        name: 'Android_1',
-        height: DEFAULT_HEIGHT,
-        width: DEFAULT_WIDTH,
-    },
-    {
-        id: 2,
-        name: 'Android_2',
-        title: 'Image 2',
-        description: 'Image 2 description',
-        height: 200,
-        width: 200,
-    },
-    {
-        id: 3,
-        name: 'Android_3',
-        title: 'Image 3',
-        description: 'Image 3 description',
-        height: 200,
-        width: 200,
-    }
-];
+
 
 
 
 const UIList = () => {
-    const [uiList, setUIList] = useState(mockUIList);
+    const [uiList, setUIList] = useState([]);
     const navigate = useNavigate();
     const handleDragEnd = (e,name) => {
         e.dataTransfer.setData('name', name);
@@ -45,11 +22,6 @@ const UIList = () => {
         e.dataTransfer.setData('imageWidth', e.target.width*10);
     }
 
-    const images = [
-        { url: "https://picsum.photos/seed/a/1600/900" },
-        { url: "https://picsum.photos/seed/b/1920/1080" },
-        { url: "https://picsum.photos/seed/c/1366/768" },
-      ];
 
     useEffect(() => {
         const eventHandler = (e) => {
@@ -97,6 +69,29 @@ const UIList = () => {
         })
 
     },[])
+
+    useEffect(() => {
+        const eventHandler = (e) => {
+            if(!e.data.pluginMessage) {
+                return;
+            }
+            const {type=null, data} = e.data.pluginMessage;
+            if (type == 'initializeMainPage') {
+                // convert the id string to number
+                if(data){
+                    navigate('/ui/'+data)
+                }
+            }
+        }
+        window.addEventListener('message', eventHandler);
+        return () => {
+            window.removeEventListener('message', eventHandler);
+        }
+        }, []);
+
+    useEffect(() => {
+        parent.postMessage({ pluginMessage: {type:"initializeMainPage"},pluginId:"1214978636007916809" }, '*');
+    },[]);
 
     const imageList = uiList.map((image,index) => {
         return {url:BASIC_URL +"picture/"+image.name}
