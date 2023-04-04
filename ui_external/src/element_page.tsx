@@ -1,7 +1,7 @@
 import React, {useEffect,useState} from 'react';
 import {Image} from 'antd';
 const BASIC_URL = "http://127.0.0.1:5000/";
-const DEFAULT_WIDTH = 144;
+const DEFAULT_WIDTH = 144; 
 const DEFAULT_HEIGHT = 256;
 import { useParams } from 'react-router-dom';
 import { ArrowLeftOutlined } from '@ant-design/icons';
@@ -50,7 +50,9 @@ export default function ElementPage() {
   // only need the element list to change. The text is not changable, and the point is to modify the location.
   // fake element list for now
   const [fixedElementList, setFixedElementList] = useState([]);
+  const [target, setTarget] = useState<any>(null);
   const [elementList, setElementList] = useState<any>([])
+  const [initialElementList, setInitialElementList] = useState<any>([])
   const navigate = useNavigate();
   const handleDragEnd = (e,name) => {
     const cursorX = e.clientX;
@@ -65,10 +67,11 @@ export default function ElementPage() {
     const relativeY = cursorY - imageY;
     e.dataTransfer.setData('name', name);
     e.dataTransfer.setData('filename', e.target.src);
-    e.dataTransfer.setData('imageHeight', e.target.height*10);
-    e.dataTransfer.setData('imageWidth', e.target.width*10);
-    e.dataTransfer.setData('relativeX', relativeX*10);
-    e.dataTransfer.setData('relativeY', relativeY*10);
+    e.dataTransfer.setData('imageHeight', e.target.height*5);
+    e.dataTransfer.setData('imageWidth', e.target.width*5);
+    e.dataTransfer.setData('relativeX', relativeX*5);
+    e.dataTransfer.setData('relativeY', relativeY*5);
+
 }
 
   const handleDoubleClick = (event,id) => {
@@ -79,23 +82,22 @@ export default function ElementPage() {
         return;
     }
 
-
+    console.log(element,'element')
     const elementInfo = {
         id: element.id,
-        element_name: element.element_name,
+        element_name: element.id,
         height: element.height,
         width: element.width,
         left: element.left,
         top: element.top,
         ui_name: ui,
-        src:BASIC_URL +"element/"+ element.element_name,
+        src:BASIC_URL +"element/"+ ui+"/"+element.id,
     }
 
     // filter whihc id is not in the elementList
     const newList=[...elementList,element]
     setElementList(newList);
     setLoading(true);
-
     const options = {
         method: "POST",
         headers: {
@@ -116,18 +118,35 @@ export default function ElementPage() {
 
   };
 
+
   useEffect(() => {
-    // fetch the json file
-    fetch(BASIC_URL +"json/"+ui)
-    .then(response => response.json())
-    .then(data => {
-        //todo
-        console.log(data)
-        if(data?.elements){
-            setFixedElementList(data.elements);
+    // fetch the json file using async/await
+
+    const fetchData = async () => {
+      try {
+        const response = await fetch(BASIC_URL + 'json/' + ui);
+        const data = await response.json();
+        if (data?.elements) {
+          setFixedElementList(data.elements);
         }
-    })
-  }, []);
+
+        const response2= await fetch(BASIC_URL + 'partialjson/' + ui);
+        const data2 = await response2.json();
+        if (data2?.elements) {
+            console.log('data2',data2)
+            setInitialElementList(data2.elements);
+            setTarget(data2.target);
+        };
+
+
+
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      }
+    };
+
+    fetchData();
+  }, [ui]);
 
   useEffect(() => {
     const eventHandler = (e) => {
@@ -146,28 +165,37 @@ export default function ElementPage() {
             })
             setElementList(elementList);
         }
+
+        if (type == 'uiFinished') {
+            console.log('uiFinished',data);
+            console.log('uiFinished',initialElementList);
+            initialElementList.forEach(element => {
+                const elementInfo = {
+                    id: element.id,
+                    element_name: element.id,
+                    height: element.height,
+                    width: element.width,
+                    left: element.left,
+                    top: element.top,
+                    ui_name: ui,
+                    src:BASIC_URL +"element/"+ ui+"/"+element.id,
+                };
+                parent.postMessage({ pluginMessage: { elementInfo },type:"autoSetLocation",pluginId:"1214978636007916809" }, '*');
+            });
+        }
     }
     window.addEventListener('message', eventHandler);
     return () => {
         window.removeEventListener('message', eventHandler);
     }
-    }, []);
+    }, [initialElementList]);
 
   useEffect(() => {
     parent.postMessage({ pluginMessage: {type:"initializeList"},pluginId:"1214978636007916809" }, '*');
   },[]);
 
-//   useEffect(() => {
-//     // fetch the json file
-//     fetch(BASIC_URL +"json/"+ui)
-//     .then(response => response.json())
-//     .then(data => {
-//         //todo
-//     })
-//   }, []);
+
   
-
-
   
 
   return (
@@ -177,7 +205,7 @@ export default function ElementPage() {
     </div>
     <div className='w-4/5 mx-auto flex flex-col justify-center items-center'>
         <Image
-        src={BASIC_URL +"picture/"+ui}
+        src={BASIC_URL +"background/"+ui}
         height={DEFAULT_HEIGHT}
         width={DEFAULT_WIDTH}
         preview={false}
@@ -203,11 +231,19 @@ export default function ElementPage() {
                 if(isFound) {
                     return null;
                 }
-                const height=200;
-                const width=height*item.width/item.height;
+                let {height,width}=item;
+                const RATIO=height/width;
+                if(height>width){
+                    height=100;
+                    width=height/RATIO;
+                }else{
+                    width=100;
+                    height=width*RATIO;
+                }
                 return (
                     
-                    <div className='w-1/2 flex justify-center' key={item.id} >
+                    <div className='w-1/2 flex justify-center h-100 items-center' key={item.id} >
+                        <div className='w-1/2'>
                         <Image
                             key={item.id}
                             src={BASIC_URL +"element/"+ui+"/"+item.id}
@@ -215,8 +251,9 @@ export default function ElementPage() {
                             width={width}
                             preview={false}
                             onDoubleClick={(e)=>{handleDoubleClick(e,item.id)}}
-                            id={item.element_name}
+                            id={item.id}
                         />
+                        </div>
                     </div>
                 )
             })}
