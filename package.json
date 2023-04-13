@@ -5,7 +5,8 @@
   "main": "code.js",
   "scripts": {
     "build": "webpack",
-    "watch": "npm run build -- --watch"
+    "watch": "npm run build -- --watch",
+    "dev": "npm run build -- --watch"
   },
   "author": "",
   "license": "",

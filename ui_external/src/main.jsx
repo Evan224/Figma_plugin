@@ -7,12 +7,12 @@ import ElementPage from './element_page';
 
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
+  // <React.StrictMode>
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<App />} />
         <Route path="/ui/:ui" element={<ElementPage />} />
       </Routes>
     </BrowserRouter>
-  </React.StrictMode>,
+  // </React.StrictMode>,
 )

@@ -5,10 +5,9 @@ const DEFAULT_WIDTH = 144;
 const DEFAULT_HEIGHT = 256;
 import { useParams } from 'react-router-dom';
 import { ArrowLeftOutlined } from '@ant-design/icons';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate,useLocation } from 'react-router-dom';
 import { Spin } from 'antd';
 import { Button, Modal } from 'antd';
-import { Target } from 'puppeteer';
 
 // const mockElementList = [
 //     {
@@ -46,7 +45,8 @@ import { Target } from 'puppeteer';
 // ]
 
 export default function ElementPage() {
-  const {ui} = useParams();
+  const params = useParams();
+  const [ui, setUI] = useState<any>(params.ui);
   const [loading, setLoading] = useState(false);
   // only need the element list to change. The text is not changable, and the point is to modify the location.
   // fake element list for now
@@ -55,6 +55,7 @@ export default function ElementPage() {
   const [elementList, setElementList] = useState<any>([])
   const [initialElementList, setInitialElementList] = useState<any>([])
   const navigate = useNavigate();
+  const location = useLocation();
   const handleDragEnd = (e,name) => {
     const cursorX = e.clientX;
     const cursorY = e.clientY;
@@ -77,7 +78,14 @@ export default function ElementPage() {
 
   const handleDoubleClick = (event,id) => {
     // get the element from the fixedElementList
-    const element = fixedElementList.find(item => item.id === id);
+    // if id is target, then make the target the element
+    let element;
+    if(id===target.id) {
+        element = target;
+    }else{
+        element = fixedElementList.find(item => item.id === id);
+    }
+
     // filter the element from the in the fixedElementList that is 
     if(!element) {
         return;
@@ -94,7 +102,6 @@ export default function ElementPage() {
         ui_name: ui,
         src:BASIC_URL +"element/"+ ui+"/"+element.id,
     }
-
     // filter whihc id is not in the elementList
     const newList=[...elementList,element]
     setElementList(newList);
@@ -111,7 +118,7 @@ export default function ElementPage() {
             element:element,
         })
     };
-    fetch(BASIC_URL +"target", options).then(response => response.json()).then(data => {
+    fetch(BASIC_URL +"recommend", options).then(response => response.json()).then(data => {
         console.log(data,'data')
         parent.postMessage({ pluginMessage: { elementInfo },type:"autoSetLocation",pluginId:"1214978636007916809" }, '*');
     }).finally(() => { 
@@ -121,15 +128,12 @@ export default function ElementPage() {
 
   };
 
-  const handleDoubleClickUI =async (event) => {
-    console.log(event.target,'event.target')
-    // fetch the data /json/<string:pic_name>'
+  const setUpUIComponent =async () => {
     const response = await fetch(BASIC_URL + 'json/' + ui);
     const data = await response.json();
-    console.log(data,'data')
     const uiInfo={
         ui_name:ui,
-        src:event.target.src,
+        src:BASIC_URL +"picture/"+ui,
         width:data.width,
         height:data.height,
     }
@@ -143,6 +147,7 @@ export default function ElementPage() {
       try {
         const response = await fetch(BASIC_URL + 'json/' + ui);
         const data = await response.json();
+        console.log('data',data,'-----------')
         if (data?.elements) {
           setFixedElementList(data.elements);
         }
@@ -154,8 +159,7 @@ export default function ElementPage() {
             setInitialElementList(data2.elements);
             setTarget(data2.target);
         };
-
-
+        await setUpUIComponent();
 
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -163,7 +167,44 @@ export default function ElementPage() {
     };
 
     fetchData();
-  }, [ui]);
+  }, []);
+
+//   useEffect(() => {
+//     console.log(initialElementList,'initialElementList',elementList,'elementList')
+//     initialElementList.forEach(element => {
+//         const elementInfo = {
+//             id: element.id,
+//             element_name: element.id,
+//             height: element.height,
+//             width: element.width,
+//             left: element.left,
+//             top: element.top,
+//             ui_name: ui,
+//             src:BASIC_URL +"element/"+ ui+"/"+element.id,
+//         };
+//         const newList=[...elementList,element]
+//         setElementList(newList);
+//         parent.postMessage({ pluginMessage: { elementInfo,type:"initialSetUp" },pluginId:"1214978636007916809" }, '*');
+//     });
+//   }, [initialElementList]);
+
+  const setUpInitElement = () => {
+    initialElementList.forEach(element => {
+        const elementInfo = {
+            id: element.id,
+            element_name: element.id,
+            height: element.height,
+            width: element.width,
+            left: element.left,
+            top: element.top,
+            ui_name: ui,
+            src:BASIC_URL +"element/"+ ui+"/"+element.id,
+        };
+        const newList=[...elementList,element]
+        setElementList(newList);
+        parent.postMessage({ pluginMessage: { elementInfo,type:"initialSetUp" },pluginId:"1214978636007916809" }, '*');
+    });
+  }
 
   useEffect(() => {
     const eventHandler = (e) => {
@@ -180,26 +221,13 @@ export default function ElementPage() {
                     elementList.push(item);
                 }
             })
-            // send the recommend to the server
             setElementList(elementList);
         }
 
         if (type == 'uiFinished') {
             console.log('uiFinished',data);
             console.log('uiFinished',initialElementList);
-            initialElementList.forEach(element => {
-                const elementInfo = {
-                    id: element.id,
-                    element_name: element.id,
-                    height: element.height,
-                    width: element.width,
-                    left: element.left,
-                    top: element.top,
-                    ui_name: ui,
-                    src:BASIC_URL +"element/"+ ui+"/"+element.id,
-                };
-                parent.postMessage({ pluginMessage: { elementInfo,type:"initialSetUp" },pluginId:"1214978636007916809" }, '*');
-            });
+            setUpInitElement();
         }
     }
     window.addEventListener('message', eventHandler);
@@ -231,8 +259,9 @@ export default function ElementPage() {
 
   return (
     <>
-        <div>
+        <div className='flex items-center'>
       <ArrowLeftOutlined className='m-4' style={{ fontSize: '20px' }} onClick={()=> navigate(-1)} />
+      All the UIs
     </div>
     <div className='w-4/5 mx-auto flex flex-col justify-center items-center'>
         <Image
@@ -255,23 +284,33 @@ export default function ElementPage() {
         </>
         )}
 
-        <div className='w-1/2 my-10'>
-            <div>Recommend:</div>
-            <Image
-                key={target.id}
-                src={BASIC_URL +"element/"+ui+"/"+target.id}
-                height={height}
-                width={width}
-                preview={false}
-                onDoubleClick={(e)=>{handleDoubleClick(e,target.id)}}
-                id={target.id}
-            />
+        <div className='w-full my-5 flex justify-between'>
+            <div className='flex-col flex'>
+                <div>Recommend Next</div>
+                <Image
+                    key={target.id}
+                    src={BASIC_URL +"element/"+ui+"/"+target.id}
+                    height={height}
+                    width={width}
+                    preview={false}
+                    onDoubleClick={(e)=>{handleDoubleClick(e,target.id)}}
+                    id={target.id}
+                    className='shadow-lg rounded-lg my-5'
+                />
+            </div>
+            <div className='flex-col flex'>
+                {/* <Button type="text" onClick={()=>{}}>init</Button> */}
+                <Button type="text" onClick={()=>{
+                    setElementList([]);
+                    parent.postMessage({ pluginMessage: {type:"reset",ui:ui,id:target.id},pluginId:"1214978636007916809" }, '*');
+                }}>reset</Button>
+            </div>
         </div>
 
 
         
         <div className='flex my-5 w-[95vw] flex-wrap'>
-            {fixedElementList.map((item,index) => {
+            {initialElementList.map((item,index) => {
                 // if item.id is found in the elementList, then we don't need to render the element
                 const isFound = elementList.find(element => element.id === item.id);
                 const ifTaget=target.id===item.id;
@@ -281,16 +320,16 @@ export default function ElementPage() {
                 let {height,width}=item;
                 const RATIO=height/width;
                 if(height>width){
-                    height=100;
+                    height=120;
                     width=height/RATIO;
                 }else{
-                    width=100;
+                    width=120;
                     height=width*RATIO;
                 }
 
                 return (
                     <div className='w-1/2 flex justify-center h-[150px] items-center' key={item.id} >
-                        <div className='w-2/3'>
+                        <div className='w-full flex justify-center items-center'>
                         <Image
                             className='shadow-lg rounded-lg'
                             key={item.id}

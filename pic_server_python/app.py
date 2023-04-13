@@ -69,35 +69,17 @@ def serve_partial_json(pic_name):
 @app.route('/recommend', methods=['POST'])
 def recommend_json():
     # Get the JSON file from the request
-    json_file = request.get_json()
+    data = request.get_json()
 
-    element_list = json_file['elementList']
-    fixed_element_list = json_file["fixedElementList"]
-    # print(element_list)
 
-    # mock recommend algorithm
-    for element in fixed_element_list:
-        # if element["id"] can be found in element_list, continue
-        if element["id"] in [element["id"] for element in element_list]:
-            continue
-        # else, random the element["top"] and element["left"] between 0 and 1000
-        else:
-            element["top"] = np.random.randint(0, 2770)
-            element["left"] = np.random.randint(0, 1440)
-            element["width"] = np.random.randint(100, 300)
-            element["height"] = np.random.randint(100, 300)
-            element_list.append(element)
-
-    # print('-----------------')
-    # print(element_list)
     time.sleep(1)
     # Return the modified JSON file
-    return jsonify(fixed_element_list)
+    return jsonify(data)
 
 # get the list of image filenames in the static folder
 @app.route('/api/imageList', methods=['GET'])
 def image_list():
-    static_path = './static/UI'
+    static_path = './static/UI_temp'
     # use os.listdir() to get a list of all filenames in the folder
     filenames = os.listdir(static_path)
     # use a list comprehension to filter out non-image filenames

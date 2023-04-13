@@ -89,12 +89,12 @@ const UIList = () => {
                 return;
             }
             const {type=null, data} = e.data.pluginMessage;
-            if (type == 'initializeMainPage') {
-                // convert the id string to number
-                if(data){
-                    navigate('/ui/'+data)
-                }
-            }
+            // if (type == 'initializeMainPage') {
+            //     // convert the id string to number
+            //     if(data){
+            //         navigate('/ui/'+data)
+            //     }
+            // }
         }
         window.addEventListener('message', eventHandler);
         return () => {
@@ -124,7 +124,7 @@ const UIList = () => {
                         preview={false}
                         className='cursor-pointer shadow-lg'
                         onDoubleClick={async (e) => {
-                            await handleDoubleClickUI(e,image.name)
+                            // await handleDoubleClickUI(e,image.name)
                             navigate('/ui/'+image.name)
                         }}
                         />

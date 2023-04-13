@@ -144,7 +144,6 @@ const getCurrentComponent = throttle(() => {
 }, 1000);
 
 const setUIComponent = (UIinfo: any) => {
-  // console.log(UIinfo, "UIinfo");
   const { src, ui_name, height, width } = UIinfo;
 
   const ExistingComponent = figma.currentPage.findChild((node) => {
@@ -180,7 +179,8 @@ const setUIComponent = (UIinfo: any) => {
   return false;
 };
 
-figma.ui.onmessage = (message) => {
+figma.ui.onmessage = async (message) => {
+  console.log("[plugin] message", message);
   if (message.type === "initializeList") {
     documentChangeHandler();
     return;
@@ -196,7 +196,30 @@ figma.ui.onmessage = (message) => {
     return;
   }
 
-  console.log("[plugin] message", message);
+  if (message.type === "reset") {
+    // get the data ui
+    const { ui, id } = message;
+    // delete the target whhich parent nameis ui
+
+    // find the target node where name = id
+    // const targetNode = figma.currentPage.findChild((node) => {
+    //   return node.name === id && node.parent?.name === ui;
+    // }) as RectangleNode;
+
+    // find all nodes and console its name, parent name and type
+    const targetNode = figma.currentPage.findAll((node) => {
+      console.log(node.name, node.parent?.name, node.type);
+      return node.name === String(id) && node.parent?.name === ui;
+    });
+
+    // remove the target node
+    targetNode.forEach((node) => {
+      node.remove();
+    });
+    return;
+  }
+
+  // console.log("[plugin] message", message);
   const elementInfo = message.elementInfo;
   const { element_name, height, width, left, top, ui_name, src, id } =
     elementInfo;
@@ -209,7 +232,7 @@ figma.ui.onmessage = (message) => {
     return;
   }
 
-  fetch(src)
+  await fetch(src)
     .then((response) => response.arrayBuffer())
     .then((buffer) => {
       const imageHash = figma.createImage(new Uint8Array(buffer)).hash;
@@ -220,6 +243,7 @@ figma.ui.onmessage = (message) => {
       };
       const rectangle = figma.createRectangle();
       // ignore if ui component is not found
+      if (ui_component.children.includes(rectangle)) return;
       ui_component!.appendChild(rectangle);
       rectangle.fills = [imagePaint as Paint];
       rectangle.resize(width, height); // Set the size of the rectangle
