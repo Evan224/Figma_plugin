@@ -10,7 +10,20 @@ import Slider from "@madzadev/image-slider";
 // UI list shuold also contain the according JSON description, thus need a name
 
 
-
+const handleDoubleClickUI =async (event,ui) => {
+    console.log(event.target,'event.target')
+    // fetch the data /json/<string:pic_name>'
+    const response = await fetch(BASIC_URL + 'json/' + ui);
+    const data = await response.json();
+    console.log(data,'data')
+    const uiInfo={
+        ui_name:ui,
+        src:event.target.src,
+        width:data.width,
+        height:data.height,
+    }
+    parent.postMessage({ pluginMessage: { uiInfo,type:"setUIComponent" },pluginId:"1214978636007916809" }, '*');
+  }
 
 const UIList = () => {
     const [uiList, setUIList] = useState([]);
@@ -110,7 +123,8 @@ const UIList = () => {
                         onDragStart={(e)=>handleDragEnd(e,image.name)}
                         preview={false}
                         className='cursor-pointer shadow-lg'
-                        onDoubleClick={() => {
+                        onDoubleClick={async (e) => {
+                            await handleDoubleClickUI(e,image.name)
                             navigate('/ui/'+image.name)
                         }}
                         />

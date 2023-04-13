@@ -8,6 +8,7 @@ import { ArrowLeftOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { Spin } from 'antd';
 import { Button, Modal } from 'antd';
+import { Target } from 'puppeteer';
 
 // const mockElementList = [
 //     {
@@ -106,22 +107,38 @@ export default function ElementPage() {
         body: JSON.stringify({
             elementList:newList,
             ui:ui,
-            element:element
+            fixedElementList:fixedElementList,
+            element:element,
         })
     };
     fetch(BASIC_URL +"target", options).then(response => response.json()).then(data => {
+        console.log(data,'data')
         parent.postMessage({ pluginMessage: { elementInfo },type:"autoSetLocation",pluginId:"1214978636007916809" }, '*');
-    }).finally(() => {
+    }).finally(() => { 
         setLoading(false);
     });
 
 
   };
 
+  const handleDoubleClickUI =async (event) => {
+    console.log(event.target,'event.target')
+    // fetch the data /json/<string:pic_name>'
+    const response = await fetch(BASIC_URL + 'json/' + ui);
+    const data = await response.json();
+    console.log(data,'data')
+    const uiInfo={
+        ui_name:ui,
+        src:event.target.src,
+        width:data.width,
+        height:data.height,
+    }
+    parent.postMessage({ pluginMessage: { uiInfo,type:"setUIComponent" },pluginId:"1214978636007916809" }, '*');
+  }
+
 
   useEffect(() => {
     // fetch the json file using async/await
-
     const fetchData = async () => {
       try {
         const response = await fetch(BASIC_URL + 'json/' + ui);
@@ -163,6 +180,7 @@ export default function ElementPage() {
                     elementList.push(item);
                 }
             })
+            // send the recommend to the server
             setElementList(elementList);
         }
 
@@ -180,7 +198,7 @@ export default function ElementPage() {
                     ui_name: ui,
                     src:BASIC_URL +"element/"+ ui+"/"+element.id,
                 };
-                parent.postMessage({ pluginMessage: { elementInfo },type:"autoSetLocation",pluginId:"1214978636007916809" }, '*');
+                parent.postMessage({ pluginMessage: { elementInfo,type:"initialSetUp" },pluginId:"1214978636007916809" }, '*');
             });
         }
     }
@@ -195,8 +213,21 @@ export default function ElementPage() {
   },[]);
 
 
+  if(!target) {
+    return null;
+  }
+
+  let {height,width}=target;
+  const RATIO=height/width;
+  if(height>width){
+      height=100;
+      width=height/RATIO;
+  }else{
+      width=100;
+      height=width*RATIO;
+  }
   
-  
+
 
   return (
     <>
@@ -205,11 +236,12 @@ export default function ElementPage() {
     </div>
     <div className='w-4/5 mx-auto flex flex-col justify-center items-center'>
         <Image
-        src={BASIC_URL +"background/"+ui}
+        src={BASIC_URL +"picture/"+ui}
         height={DEFAULT_HEIGHT}
         width={DEFAULT_WIDTH}
         preview={false}
-        onDragStart={(e)=>handleDragEnd(e,ui)}
+        // onDragStart={(e)=>handleDragEnd(e,ui)}
+        // onDoubleClick={(e)=>{handleDoubleClickUI(e)}}
         className='shadow-lg my-2'
         />
         {loading && (
@@ -223,12 +255,27 @@ export default function ElementPage() {
         </>
         )}
 
+        <div className='w-1/2 my-10'>
+            <div>Recommend:</div>
+            <Image
+                key={target.id}
+                src={BASIC_URL +"element/"+ui+"/"+target.id}
+                height={height}
+                width={width}
+                preview={false}
+                onDoubleClick={(e)=>{handleDoubleClick(e,target.id)}}
+                id={target.id}
+            />
+        </div>
+
+
         
         <div className='flex my-5 w-[95vw] flex-wrap'>
             {fixedElementList.map((item,index) => {
                 // if item.id is found in the elementList, then we don't need to render the element
                 const isFound = elementList.find(element => element.id === item.id);
-                if(isFound) {
+                const ifTaget=target.id===item.id;
+                if(isFound||ifTaget) {
                     return null;
                 }
                 let {height,width}=item;
@@ -240,11 +287,12 @@ export default function ElementPage() {
                     width=100;
                     height=width*RATIO;
                 }
+
                 return (
-                    
-                    <div className='w-1/2 flex justify-center h-100 items-center' key={item.id} >
-                        <div className='w-1/2'>
+                    <div className='w-1/2 flex justify-center h-[150px] items-center' key={item.id} >
+                        <div className='w-2/3'>
                         <Image
+                            className='shadow-lg rounded-lg'
                             key={item.id}
                             src={BASIC_URL +"element/"+ui+"/"+item.id}
                             height={height}

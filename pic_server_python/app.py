@@ -19,17 +19,26 @@ json_dicts = {
 
 @app.route('/picture/<string:pic_name>')
 def serve_picture(pic_name):
+
     filename = f'{pic_name}.jpg'
-    response = send_file(f'../mock/ui_imgs/{filename}', mimetype='image/jpg')
+    response = send_file(f'./static/UI/{filename}', mimetype='image/jpg')
+    response.headers['Access-Control-Allow-Origin'] = '*'  # CORS
+    return response
+
+@app.route('/background/<string:pic_name>')
+def serve_background(pic_name):
+
+    filename = f'{pic_name}.jpg'
+    response = send_file(f'./static/background/{filename}', mimetype='image/jpg')
     response.headers['Access-Control-Allow-Origin'] = '*'  # CORS
     return response
 
 
-@app.route('/element/<string:pic_name>')
-def serve_element(pic_name):
-    filename = f'{pic_name}.png'
+@app.route('/element/<string:pic_name>/<int:element_id>')
+def serve_element(pic_name, element_id):
+    filename = f'element_{element_id}.jpg'
     response = send_file(
-        f'../mock/element_imgs/{filename}', mimetype='image/png')
+        f'./static/elements/{pic_name}/{filename}', mimetype='image/jpg')
     response.headers['Access-Control-Allow-Origin'] = '*'  # CORS
     return response
 
@@ -37,7 +46,18 @@ def serve_element(pic_name):
 @app.route('/json/<string:pic_name>')
 def serve_json(pic_name):
     filename = f'{pic_name}.json'
-    with open(f'../mock/json/{filename}', 'rb') as f:
+    with open(f'./static/json/{filename}', 'rb') as f:
+        file_contents = json.load(f)
+        json_dicts[pic_name] = file_contents
+    response = send_file(json_dicts[pic_name], mimetype='json')
+    print(response, type(response))
+    response.headers['Access-Control-Allow-Origin'] = '*'  # CORS
+    return jsonify(json_dicts[pic_name])
+
+@app.route('/partialjson/<string:pic_name>')
+def serve_partial_json(pic_name):
+    filename = f'{pic_name}.json'
+    with open(f'./static/InitJSON/{filename}', 'rb') as f:
         file_contents = json.load(f)
         json_dicts[pic_name] = file_contents
     response = send_file(json_dicts[pic_name], mimetype='json')
@@ -74,10 +94,10 @@ def recommend_json():
     # Return the modified JSON file
     return jsonify(fixed_element_list)
 
-
+# get the list of image filenames in the static folder
 @app.route('/api/imageList', methods=['GET'])
 def image_list():
-    static_path = '../mock/ui_imgs'
+    static_path = './static/UI'
     # use os.listdir() to get a list of all filenames in the folder
     filenames = os.listdir(static_path)
     # use a list comprehension to filter out non-image filenames
@@ -88,6 +108,23 @@ def image_list():
 
     return {'imageList': image_filenames}
 
+@app.route('/api/elementList/<name>', methods=['GET'])
+def element_list(name):
+    static_path = './static/elements/'+name
+    # use os.listdir() to get a list of all filenames in the folder
+    filenames = os.listdir(static_path)
+
+    return {'imageList': filenames}
+
+@app.route('/target', methods=['POST'])
+def target():
+    # print the body of the request
+    print(request.get_json())
+    # mock the target algorithm
+    # time.sleep(2)
+    # send the hello world response
+    response = {'result': 'success'}
+    return jsonify(response), 200, {'Access-Control-Allow-Origin': '*'}
 
 @app.route('/api/image', methods=['POST'])
 def image():
