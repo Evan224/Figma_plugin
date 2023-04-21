@@ -23,7 +23,7 @@ const handleDoubleClickUI =async (event,ui) => {
         height:data.height,
     }
     parent.postMessage({ pluginMessage: { uiInfo,type:"setUIComponent" },pluginId:"1214978636007916809" }, '*');
-  }
+}
 
 const UIList = () => {
     const [uiList, setUIList] = useState([]);
@@ -89,12 +89,6 @@ const UIList = () => {
                 return;
             }
             const {type=null, data} = e.data.pluginMessage;
-            // if (type == 'initializeMainPage') {
-            //     // convert the id string to number
-            //     if(data){
-            //         navigate('/ui/'+data)
-            //     }
-            // }
         }
         window.addEventListener('message', eventHandler);
         return () => {
@@ -113,6 +107,10 @@ const UIList = () => {
     return (     
         <div className='flex flex-wrap w-[86vw] mx-auto justify-betweeen'>
             {uiList.map((image,index) => {
+                // get preview image
+                const previewImage = uiList[index-1] ? uiList[index-1].name : uiList[uiList.length-1].name;
+                const nextImage = uiList[index+1] ? uiList[index+1].name : uiList[0].name;
+
                 return (
                     <div className='m-2 flex items-center' key={image.id} >
                         <Image
@@ -128,12 +126,6 @@ const UIList = () => {
                             navigate('/ui/'+image.name)
                         }}
                         />
-                        {/* <div className='flex'>
-                            <Slider imageList={images} width={1000} height={300} />
-                        </div> */}
-                        {/* <Button onClick={() => {
-                            navigate('/ui/'+image.name)
-                        } }>choose</Button> */}
                     </div>
                 )
             })}

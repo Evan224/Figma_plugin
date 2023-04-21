@@ -6,6 +6,8 @@ import numpy as np
 from PIL import Image
 import time
 import json
+from figma_function import figma_fn
+
 
 DEFAULT_URL = 'http://127.0.0.1:5000'
 
@@ -61,7 +63,7 @@ def serve_partial_json(pic_name):
         file_contents = json.load(f)
         json_dicts[pic_name] = file_contents
     response = send_file(json_dicts[pic_name], mimetype='json')
-    print(response, type(response))
+    # print(response, type(response))
     response.headers['Access-Control-Allow-Origin'] = '*'  # CORS
     return jsonify(json_dicts[pic_name])
 
@@ -71,22 +73,23 @@ def recommend_json():
     # Get the JSON file from the request
     data = request.get_json()
 
+    print(data,'---------------------')
+    result=figma_fn(data["data"],data["name"])
 
-    time.sleep(1)
-    # Return the modified JSON file
-    return jsonify(data)
+    return jsonify(result)
 
 # get the list of image filenames in the static folder
 @app.route('/api/imageList', methods=['GET'])
 def image_list():
+
+    # set the path to the static folder
+
     static_path = './static/UI_temp'
     # use os.listdir() to get a list of all filenames in the folder
     filenames = os.listdir(static_path)
     # use a list comprehension to filter out non-image filenames
     image_filenames = [filename for filename in filenames if filename.endswith(
         '.jpg') or filename.endswith('.jpeg') or filename.endswith('.png')]
-
-    print(image_filenames)
 
     return {'imageList': image_filenames}
 
@@ -100,13 +103,12 @@ def element_list(name):
 
 @app.route('/target', methods=['POST'])
 def target():
-    # print the body of the request
-    print(request.get_json())
-    # mock the target algorithm
-    # time.sleep(2)
-    # send the hello world response
-    response = {'result': 'success'}
-    return jsonify(response), 200, {'Access-Control-Allow-Origin': '*'}
+    # Get the JSON file from the request
+    data = request.get_json()
+
+    result,state=figma_fn(data)
+
+    return jsonify(result)
 
 @app.route('/api/image', methods=['POST'])
 def image():
