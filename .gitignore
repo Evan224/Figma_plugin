@@ -12,3 +12,5 @@ code.js
 
 pic_server_python/figma_data/*
 pic_server_python/GNN_dataset_Apr/*
+pic_server_python/ipynb_checkpoints/*
+pic_server_python/checkpoints/*
