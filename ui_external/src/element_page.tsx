@@ -9,7 +9,9 @@ import { useNavigate,useLocation } from 'react-router-dom';
 import { Spin } from 'antd';
 import { Button, Modal } from 'antd';
 import { RightCircleOutlined,LeftCircleOutlined} from '@ant-design/icons';
+import { Divider, Space, Tag,Badge } from 'antd';
 import UIList from './UIList';
+import {debounce, throttle} from './utility';
 
 const handleDoubleClickUI =async (event,ui) => {
 
@@ -23,57 +25,65 @@ const handleDoubleClickUI =async (event,ui) => {
     }
     parent.postMessage({ pluginMessage: { uiInfo,type:"setUIComponent" },pluginId:"1214978636007916809" }, '*');
 }
-// const mockElementList = [
-//     {
-//         element_name:"pic1",
-//         id:1,
-//         height:100,
-//         width:100,
-//         left:200,
-//         top:200,
-//     },
-//     {
-//         element_name:"pic2",
-//         id:2,
-//         height:100,
-//         width:100,
-//         left:400,
-//         top:300,
-//     },
-//     {
-//         element_name:"pic3",
-//         id:3,
-//         height:100,
-//         width:100,
-//         left:400,
-//         top:400,
-//     },
-//     {
-//         element_name:"pic4",
-//         id:4,
-//         height:100,
-//         width:100,
-//         left:500,
-//         top:500,
-//     }
-// ]
 
 export default function ElementPage() {
     const [uiList, setUIList] = useState([]);
-  
+    const [hoveredElement, setHoveredElement] = useState<any>({
+        width: 200,
+        height: 200,
+        top:200,
+        left: 200
+    });
     const params = useParams();
     const [ui, setUI] = useState<any>(params.ui);
-    const [previousUI, setPreviousUI] = useState<any>(null);
-    const [nextUI, setNextUI] = useState<any>(null);
     const [loading, setLoading] = useState(false);
-    // only need the element list to change. The text is not changable, and the point is to modify the location.
-    // fake element list for now
     const [fixedElementList, setFixedElementList] = useState([]);
+    const [libraryElementList, setLibraryElementList] = useState([]);
     const [target, setTarget] = useState<any>(null);
     const [elementList, setElementList] = useState<any>([])
     const [initialElementList, setInitialElementList] = useState<any>([])
+    const [restElementList, setRestElementList] = useState<any>([])
     const navigate = useNavigate();
-    const location = useLocation();
+
+    const [xScale, setXScale] = useState(1);
+    const [yScale, setYScale] = useState(1);
+
+    const [thumbnail, setThumbnail] = useState<any>(null);
+
+    useEffect(() => {
+
+        const fetchData=async()=>{
+            //post
+            const options = {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    name:ui,
+                    element_list:elementList
+                }),
+            };
+
+            // /api/element_image
+            const response = await fetch(BASIC_URL + 'api/element_image', options);
+            // const response = await fetch(BASIC_URL + 'json/' + ui);
+            const data = await response.json();
+            console.log('------------------',data)
+            setThumbnail(data?.image_url);
+        }
+        fetchData();
+    }, [ui,elementList]);
+
+
+    useEffect(() => {
+        // get the elements from the fixedElementList which is not in the elementList
+        const newElementList = fixedElementList.filter(item => {
+            return !elementList.find(element => element.id === item.id);
+        })
+        setRestElementList(newElementList);
+    },[fixedElementList]);
+
     const handleDragEnd = (e,name) => {
         const cursorX = e.clientX;
         const cursorY = e.clientY;
@@ -95,8 +105,6 @@ export default function ElementPage() {
     }
 
     const handleDoubleClick =async (event,id) => {
-        // get the element from the fixedElementList
-        // if id is target, then make the target the element
         let element;
         if(id===target.id) {
             element = target;
@@ -139,15 +147,6 @@ export default function ElementPage() {
         setElementList(newList);
         parent.postMessage({ pluginMessage: { elementInfo },type:"autoSetLocation",pluginId:"1214978636007916809" }, '*');
         setLoading(false);
-        
-        // fetch(BASIC_URL +"recommend", options).then(response => response.json()).then(data => {
-        //     const target=data.data.target;
-
-
-        // }).finally(() => { 
-        // });
-
-
     };
 
     const setUpUIComponent =async () => {
@@ -196,41 +195,69 @@ export default function ElementPage() {
                 name:ui
             }),
         }
-
-        const response2=await fetch(BASIC_URL + 'recommend', options);
+        const response2=await fetch(BASIC_URL + 'recommend/mock', options);
         const data2 = await response2.json();
-        setFixedElementList([...elementList,...data2.data.target]);
+
+        if(data2?.target){
+            setFixedElementList([...elementList,...data2.target]);
+        }
     }
 
+    // todo: decide on the time to update the dotted rectangle
+    // const updateDottedLine = async(elementList) => {
+
+    //     const options = {
+    //         method: "POST",
+    //         headers: {
+    //             "Content-Type": "application/json"
+    //         },
+    //         body: JSON.stringify({
+    //             data:elementList,
+    //             name:ui
+    //         }),
+    //     }
+    //     const response=await fetch(BASIC_URL + 'dotted/mock', options);
+    //     const data = await response.json();
+
+    //     parent.postMessage({ pluginMessage: { data:{...data,ui},type:"updateDottedLine" },pluginId:"1214978636007916809" }, '*');
+    // }
+
     useEffect(() => {
-        updateElementList();
+        // updateElementList();
+        console.log('elementList',elementList,'-----------------------------------')
     },[elementList])
 
     useEffect(() => {
         // fetch the json file using async/await
+        setElementList([]);
         const fetchData = async () => {
-        try {
-            const response = await fetch(BASIC_URL + 'json/' + ui);
-            const data = await response.json();
-            if (data?.elements) {
-            setFixedElementList(data.elements);
+            try {
+                const response = await fetch(BASIC_URL + 'json/' + ui);
+                const data = await response.json();
+                setXScale(data.width/DEFAULT_WIDTH);
+                setYScale(data.height/DEFAULT_HEIGHT);
+
+                if (data?.elements) {
+                    setFixedElementList(data.elements);
+                }
+
+                const response2= await fetch(BASIC_URL + 'partialjson/' + ui);
+                const data2 = await response2.json();
+                if (data2?.elements) {
+                    setInitialElementList(data2.elements);
+                    setTarget(data2.target);
+                };
+                await setUpUIComponent();
+
+                // const response3= await fetch(BASIC_URL + 'recommend/mock');
+
+            } catch (error) {
+                console.error('Error fetching data:', error);
             }
-
-            const response2= await fetch(BASIC_URL + 'partialjson/' + ui);
-            const data2 = await response2.json();
-            if (data2?.elements) {
-                setInitialElementList(data2.elements);
-                setTarget(data2.target);
-            };
-            await setUpUIComponent();
-
-        } catch (error) {
-            console.error('Error fetching data:', error);
-        }
         };
 
         fetchData();
-    }, []);
+    }, [ui]);
 
     const setUpInitElement = () => {
         initialElementList.forEach(element => {
@@ -245,6 +272,7 @@ export default function ElementPage() {
                 src:BASIC_URL +"element/"+ ui+"/"+element.id,
             };
             const newList=[...elementList,element]
+            console.log('newList',newList,'setUpInitElement------------------')
             setElementList(newList);
             parent.postMessage({ pluginMessage: { elementInfo,type:"initialSetUp" },pluginId:"1214978636007916809" }, '*');
         });
@@ -256,21 +284,33 @@ export default function ElementPage() {
             return;
         }
         const {type=null, data} = e.data.pluginMessage;
+        
         if (type == 'uiElementChanged') {
-            // convert the id string to number
-            let elementList=[];
+            function areArraysEqual(arr1, arr2) {
+                if (arr1.length !== arr2.length) {
+                  return false;
+                }
+              
+                for (let i = 0; i < arr1.length; i++) {
+                  if (JSON.stringify(arr1[i]) !== JSON.stringify(arr2[i])) {
+                    return false;
+                  }
+                }
+              
+                return true;
+              }
+            let newElementList=[];
             data.map(item => {
                 item.id = parseInt(item.id);
                 if(item.parent_name === ui){
-                    elementList.push(item);
+                    newElementList.push(item);
                 }
-            })
-            setElementList(elementList);
+            });
+            // console.log('uiElementChange',elementList,'------------------',data,'------------------')
+            setElementList(newElementList);
         }
 
         if (type == 'uiFinished') {
-            console.log('uiFinished',data);
-            console.log('uiFinished',initialElementList);
             setUpInitElement();
         }
     }
@@ -283,7 +323,6 @@ export default function ElementPage() {
   useEffect(() => {
     parent.postMessage({ pluginMessage: {type:"initializeList"},pluginId:"1214978636007916809" }, '*');
   },[]);
-
 
   if(!target) {
     return null;
@@ -304,14 +343,15 @@ export default function ElementPage() {
   return (
     <>
         <div className='flex items-center'>
-        <ArrowLeftOutlined className='m-4' style={{ fontSize: '20px' }} onClick={()=>  navigate(-1)} />
+        <ArrowLeftOutlined className='m-4' style={{ fontSize: '20px' }} onClick={()=>  navigate('/')} />
         All the UIs
         </div>
         <div className='w-full mx-auto flex flex-col justify-center items-center'>
-            <div className='flex justify-between items-center w-4/5'>
-                <LeftCircleOutlined style={{ fontSize: '20px'}} onClick={
+            <div className='flex justify-between items-center w-full sticky top-0 z-30 bg-white'>
+                <LeftCircleOutlined style={{ fontSize: '20px', marginLeft:"10px"}} onClick={
                     ()=> {
                         // also consider the -1 case
+                        parent.postMessage({ pluginMessage: {type:"cleanUp" },pluginId:"1214978636007916809" }, '*');
                         const index = uiList.findIndex(item => item.name === ui);
                         let previousUI;
                         if(index === 0){
@@ -319,20 +359,42 @@ export default function ElementPage() {
                         }else{
                             previousUI = uiList[index - 1].name;
                         }
+                        navigate(`/ui/${(previousUI)}`);
                         setUI(previousUI);
                     }
                 }/>
+                <div
+                    style={{ position: 'relative', display: 'inline-block' }} 
+                    className='shadow-lg my-2'
+                >
                     <Image
-                        src={BASIC_URL +"picture/"+ui}
+                        src={thumbnail}
                         height={DEFAULT_HEIGHT}
                         width={DEFAULT_WIDTH}
                         preview={false}
-                        // onDragStart={(e)=>handleDragEnd(e,ui)}
                         onDoubleClick={(e)=>{handleDoubleClickUI(e,ui)}}
-                        className='shadow-lg my-2'
                     />
-                <RightCircleOutlined style={{ fontSize: '20px'}} onClick={
+                    {hoveredElement.width && (
+                        <div 
+                            style={{
+                                position: 'absolute',
+                                top: `${hoveredElement.top}%`,
+                                left: `${hoveredElement.left}%`,
+                                width: `${hoveredElement.width}%`,
+                                height: `${hoveredElement.height}%`,
+                                boxShadow: '0 0 10px rgba(0, 0, 0, 0.5)', // Add shadow effect
+                                backgroundColor: 'rgba(0, 0, 0, 0.5)', // Fill the box with semi-transparent black
+                                zIndex: 10
+                            }}
+                        >
+                            {/* {"this is the place where the element will be placed"} */}
+                        </div>
+                    )}
+                </div>
+                        
+                <RightCircleOutlined style={{ fontSize: '20px',marginRight:"10px"}} onClick={
                     ()=> {
+                        parent.postMessage({ pluginMessage: {type:"cleanUp" },pluginId:"1214978636007916809" }, '*');
                             const index = uiList.findIndex(item => item.name === ui);
                             let nextUI;
                             if(index === uiList.length-1){
@@ -340,11 +402,12 @@ export default function ElementPage() {
                             }else{
                                 nextUI = uiList[index + 1].name;
                             }
+                            navigate(`/ui/${(nextUI)}`);
                             setUI(nextUI);
                         }
                 }/>
             </div>
-            <div className='flex w-4/5 flex-col'>
+            <div className='flex w-4/5 flex-col sticky top-0'>
                 {loading && (
                 <>
                     <div className="fixed inset-0 bg-black bg-opacity-50 z-10"></div>
@@ -356,38 +419,18 @@ export default function ElementPage() {
                 </>
                 )}
                 <div className='w-full my-5 flex justify-between'>
-                    {/* <div className='flex-col flex'>
-                        <div>Recommend Next</div>
-                        <Image
-                            key={target.id}
-                            src={BASIC_URL +"element/"+ui+"/"+target.id}
-                            height={height}
-                            width={width}
-                            preview={false}
-                            onDoubleClick={(e)=>{handleDoubleClick(e,target.id)}}
-                            id={target.id}
-                            className='shadow-lg rounded-lg my-5'
-                        />
-                    </div> */}
                     <div className='flex-col flex'>
                         <Button type="text" onClick={()=>{
-                            setElementList([]);
-                            parent.postMessage({ pluginMessage: {type:"reset",ui:ui,id:target.id},pluginId:"1214978636007916809" }, '*');
+                            parent.postMessage({ pluginMessage: {type:"cleanUp" },pluginId:"1214978636007916809" }, '*');
+                            window.location.reload();
                         }}>reset</Button>
                     </div>
                 </div>
             </div>
+            {/* <div className=''> <Tag color="red">high</Tag> </div> */}
             
             <div className='flex my-5 w-[95vw] flex-wrap'>
-            {fixedElementList.map((item,index) => {
-                // if item.id is found in the elementList, then we don't need to render the element
-                // const isFound = elementList.find(element => element.id === item.id);
-
-                const isNotHigh=elementList.find(element => element.id === item.id || element.level !== "high");
-                const ifTaget=target.id===item.id;
-                if(isNotHigh) {
-                    return null;
-                }
+            {restElementList.map((item,index) => {
                 let {height,width}=item;
                 const RATIO=height/width;
                 if(height>width){
@@ -399,59 +442,33 @@ export default function ElementPage() {
                 }
 
                 return (
-                    <div className='w-1/2 flex justify-center h-[150px] items-center' key={item.id} >
+                <div className='w-1/2 flex justify-center h-[150px] items-center shadow-sm hover:shadow-2xl' key={item.id}
+                    onMouseEnter={() => {
+                        setHoveredElement({ 
+                            width: (item.width / xScale /1.44).toFixed(), 
+                            height: (item.height / yScale / 2.56).toFixed(),
+                            top:(item.top / yScale / 2.56).toFixed(),
+                            left:(item.left / xScale / 1.44).toFixed()
+                        })
+                    }}
+                    onMouseLeave={() => setHoveredElement({})}
+                >
+                    <Badge.Ribbon text={item.level} color={item.level==="high"?"red":"blue"}>
                         <div className='w-full flex justify-center items-center'>
-                        <Image
-                            className='shadow-lg rounded-lg'
-                            key={item.id}
-                            src={BASIC_URL +"element/"+ui+"/"+item.id}
-                            height={height}
-                            width={width}
-                            preview={false}
-                            onDoubleClick={(e)=>{handleDoubleClick(e,item.id)}}
-                            id={item.id}
-                        />
+                            <Image
+                                className='shadow-lg rounded-lg'
+                                key={item.id}
+                                src={BASIC_URL +"element/"+ui+"/"+item.id}
+                                height={height}
+                                width={width}
+                                preview={false}
+                                onDoubleClick={(e)=>{handleDoubleClick(e,item.id)}}
+                                id={item.id}
+                            />
                         </div>
-                    </div>
-                )
-            })}
-            </div>
+                    </Badge.Ribbon>
+                </div>
 
-            <div className='flex my-5 w-[95vw] flex-wrap'>
-            {fixedElementList.map((item,index) => {
-                // if item.id is found in the elementList, then we don't need to render the element
-                // const isFound = elementList.find(element => element.id === item.id);
-
-                const isNotMedium=elementList.find(element => element.id === item.id || element.level !== "medium");
-                const ifTaget=target.id===item.id;
-                if(isNotMedium) {
-                    return null;
-                }
-                let {height,width}=item;
-                const RATIO=height/width;
-                if(height>width){
-                    height=120;
-                    width=height/RATIO;
-                }else{
-                    width=120;
-                    height=width*RATIO;
-                }
-
-                return (
-                    <div className='w-1/2 flex justify-center h-[150px] items-center' key={item.id} >
-                        <div className='w-full flex justify-center items-center'>
-                        <Image
-                            className='shadow-lg rounded-lg'
-                            key={item.id}
-                            src={BASIC_URL +"element/"+ui+"/"+item.id}
-                            height={height}
-                            width={width}
-                            preview={false}
-                            onDoubleClick={(e)=>{handleDoubleClick(e,item.id)}}
-                            id={item.id}
-                        />
-                        </div>
-                    </div>
                 )
             })}
             </div>

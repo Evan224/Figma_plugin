@@ -108,9 +108,10 @@ function debounce<T extends (...args: any[]) => void>(
 }
 
 const documentChangeHandler = debounce(() => {
-  console.log("[plugin] documentChangeHandler");
+  // console.log("[plugin] documentChangeHandler");
   const node = figma.currentPage.findAll((node) => {
-    return node.type === "RECTANGLE";
+    return node.type === "RECTANGLE" && node.parent?.type === "COMPONENT" &&
+      !node.name.includes("_dotted");
   });
 
   const element_list = node.map((node) => {
@@ -179,8 +180,76 @@ const setUIComponent = (UIinfo: any) => {
   return false;
 };
 
+const cleanUp = () => {
+  // Delete all the components and their children
+  const components = figma.currentPage.findAll((node) => {
+    return node.type === "COMPONENT";
+  });
+  components.forEach((component) => {
+    // Remove children of the component
+    for (const child of component.children) {
+      child.remove();
+    }
+    // Remove the component
+    component.remove();
+  });
+};
+
+//todo sync problem
+const createDottedComponent = (data) => {
+  const { height, width, left, top, ui, type, id } = data;
+  console.log("[plugin] createDottedComponent", data);
+  const ui_component = figma.currentPage.findChild((node) =>
+    node.name === ui && node.type === "COMPONENT"
+  ) as ComponentNode;
+
+  if (!ui_component) {
+    // documentChangeHandler();
+    return;
+  }
+
+  // find if already have some _dotted component, remove them
+  const targetNode = figma.currentPage.findAll((node) => {
+    return node.name.includes("_dotted") &&
+      node.parent?.name === ui;
+  });
+
+  targetNode.forEach((node) => {
+    node.remove();
+  });
+
+  // const ExistingComponent = figma.currentPage.findChild((node) => {
+  //   return node.name === String(id) + "_dotted" &&
+  //     node.parent?.name === ui;
+  // });
+
+  // // if exist, then remove it
+  // if (ExistingComponent) {
+  //   ExistingComponent.remove();
+  // }
+
+  const rectangle = figma.createRectangle();
+  // ignore if ui component is not found
+  if (ui_component.children.includes(rectangle)) return;
+  ui_component!.appendChild(rectangle);
+  rectangle.resize(width, height); // Set the size of the rectangle
+  rectangle.x = left;
+  rectangle.y = top;
+  rectangle.name = String(id) + "_dotted";
+  const blackColor: RGBA = { r: 0, g: 0, b: 0, a: 1 };
+
+  // Create a SolidPaint object with the black color
+  const blackFill: SolidPaint = {
+    type: "SOLID",
+    color: blackColor,
+  };
+
+  // Set the fills property of the rectangle to an array containing the SolidPaint object
+  rectangle.fills = [blackFill];
+};
+
 figma.ui.onmessage = async (message) => {
-  console.log("[plugin] message", message);
+  // console.log("[plugin] message", message);
   if (message.type === "initializeList") {
     documentChangeHandler();
     return;
@@ -208,7 +277,6 @@ figma.ui.onmessage = async (message) => {
 
     // find all nodes and console its name, parent name and type
     const targetNode = figma.currentPage.findAll((node) => {
-      console.log(node.name, node.parent?.name, node.type);
       return node.name === String(id) && node.parent?.name === ui;
     });
 
@@ -216,6 +284,17 @@ figma.ui.onmessage = async (message) => {
     targetNode.forEach((node) => {
       node.remove();
     });
+    return;
+  }
+
+  if (message.type === "cleanUp") {
+    cleanUp();
+    return;
+  }
+
+  if (message.type === "addDottedLine") {
+    console.log("[plugin] updateDottedLine", message);
+    createDottedComponent(message.elementInfo);
     return;
   }
 
@@ -230,6 +309,16 @@ figma.ui.onmessage = async (message) => {
   if (!ui_component) {
     documentChangeHandler();
     return;
+  }
+
+  // if already find a elment with the same name and parent name, then remove the element
+  const targetNode = figma.currentPage.findChild((node) => {
+    return node.name === String(id) + "_dotted" &&
+      node.parent?.name === ui_name;
+  });
+
+  if (targetNode) {
+    targetNode.remove();
   }
 
   await fetch(src)
@@ -264,4 +353,4 @@ figma.showUI(
   `<script>window.location.href = "http://127.0.0.1:5173/"</script>"`,
 );
 
-figma.ui.resize(375, 500);
+figma.ui.resize(375, 750);

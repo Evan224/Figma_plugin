@@ -8,3 +8,7 @@ dist/
 code.js
 *.jpg
 *.json
+.pt
+
+pic_server_python/figma_data/*
+pic_server_python/GNN_dataset_Apr/*
