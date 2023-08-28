@@ -353,4 +353,4 @@ figma.showUI(
   `<script>window.location.href = "http://127.0.0.1:5173/"</script>"`,
 );
 
-figma.ui.resize(375, 750);
+figma.ui.resize(375, 1000);

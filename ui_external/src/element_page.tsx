@@ -69,7 +69,6 @@ export default function ElementPage() {
             const response = await fetch(BASIC_URL + 'api/element_image', options);
             // const response = await fetch(BASIC_URL + 'json/' + ui);
             const data = await response.json();
-            console.log('------------------',data)
             setThumbnail(data?.image_url);
         }
         fetchData();
@@ -82,7 +81,13 @@ export default function ElementPage() {
             return !elementList.find(element => element.id === item.id);
         })
         setRestElementList(newElementList);
-    },[fixedElementList]);
+    },[fixedElementList,elementList]);
+
+    useEffect(() => {
+        console.log('fixedElementList',fixedElementList,'----------------')
+        console.log('ElementList',elementList,'----------------')
+        console.log('restElementList',restElementList,'----------------')
+    },[restElementList]);
 
     const handleDragEnd = (e,name) => {
         const cursorX = e.clientX;
@@ -224,7 +229,6 @@ export default function ElementPage() {
 
     useEffect(() => {
         // updateElementList();
-        console.log('elementList',elementList,'-----------------------------------')
     },[elementList])
 
     useEffect(() => {
@@ -272,7 +276,6 @@ export default function ElementPage() {
                 src:BASIC_URL +"element/"+ ui+"/"+element.id,
             };
             const newList=[...elementList,element]
-            console.log('newList',newList,'setUpInitElement------------------')
             setElementList(newList);
             parent.postMessage({ pluginMessage: { elementInfo,type:"initialSetUp" },pluginId:"1214978636007916809" }, '*');
         });
@@ -306,7 +309,6 @@ export default function ElementPage() {
                     newElementList.push(item);
                 }
             });
-            // console.log('uiElementChange',elementList,'------------------',data,'------------------')
             setElementList(newElementList);
         }
 
@@ -382,8 +384,8 @@ export default function ElementPage() {
                                 left: `${hoveredElement.left}%`,
                                 width: `${hoveredElement.width}%`,
                                 height: `${hoveredElement.height}%`,
-                                boxShadow: '0 0 10px rgba(0, 0, 0, 0.5)', // Add shadow effect
-                                backgroundColor: 'rgba(0, 0, 0, 0.5)', // Fill the box with semi-transparent black
+                                boxShadow: '0 0 10px rgba(0, 0, 0, 1)', // Add shadow effect
+                                backgroundColor: 'rgba(0, 0, 0, 0.9)', // Fill the box with semi-transparent black
                                 zIndex: 10
                             }}
                         >
@@ -445,15 +447,15 @@ export default function ElementPage() {
                 <div className='w-1/2 flex justify-center h-[150px] items-center shadow-sm hover:shadow-2xl' key={item.id}
                     onMouseEnter={() => {
                         setHoveredElement({ 
-                            width: (item.width / xScale /1.44).toFixed(), 
-                            height: (item.height / yScale / 2.56).toFixed(),
-                            top:(item.top / yScale / 2.56).toFixed(),
-                            left:(item.left / xScale / 1.44).toFixed()
+                            width: (item.width / xScale /1.44).toFixed(1), 
+                            height: (item.height / yScale / 2.56).toFixed(1),
+                            top:(item.top / yScale / 2.56).toFixed(1),
+                            left:(item.left / xScale / 1.44).toFixed(1)
                         })
                     }}
                     onMouseLeave={() => setHoveredElement({})}
                 >
-                    <Badge.Ribbon text={item.level} color={item.level==="high"?"red":"blue"}>
+                    <Badge.Ribbon text={item.level||'high'} color={item.level==="high"?"red":"blue"}>
                         <div className='w-full flex justify-center items-center'>
                             <Image
                                 className='shadow-lg rounded-lg'
