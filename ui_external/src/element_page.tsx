@@ -49,6 +49,8 @@ export default function ElementPage() {
     const [yScale, setYScale] = useState(1);
 
     const [thumbnail, setThumbnail] = useState<any>(null);
+    const [helper, setHelper] = useState(true);
+
 
     useEffect(() => {
 
@@ -142,8 +144,8 @@ export default function ElementPage() {
             element_name: element.id,
             height: element.height,
             width: element.width,
-            left: element.left,
-            top: element.top,
+            left: helper ? element.left : `calc(50% - ${element.width / 2}px)`, // Set to center if helper is false
+            top: helper ? element.top : `calc(50% - ${element.height / 2}px)`, // Set to center if helper is false// Set to center if helper is false
             ui_name: ui,
             src:BASIC_URL +"element/"+ ui+"/"+element.id,
         }
@@ -376,7 +378,7 @@ export default function ElementPage() {
                         preview={false}
                         onDoubleClick={(e)=>{handleDoubleClickUI(e,ui)}}
                     />
-                    {hoveredElement.width && (
+                    {helper &&hoveredElement.width && (
                         <div 
                             style={{
                                 position: 'absolute',
@@ -426,6 +428,9 @@ export default function ElementPage() {
                             parent.postMessage({ pluginMessage: {type:"cleanUp" },pluginId:"1214978636007916809" }, '*');
                             window.location.reload();
                         }}>reset</Button>
+                        <Button type="text" onClick={() => setHelper(prevHelper => !prevHelper)}>
+                        Toggle Helper
+                        </Button>
                     </div>
                 </div>
             </div>
@@ -455,6 +460,7 @@ export default function ElementPage() {
                     }}
                     onMouseLeave={() => setHoveredElement({})}
                 >
+                    {helper ? (
                     <Badge.Ribbon text={item.level||'high'} color={item.level==="high"?"red":"blue"}>
                         <div className='w-full flex justify-center items-center'>
                             <Image
@@ -469,6 +475,19 @@ export default function ElementPage() {
                             />
                         </div>
                     </Badge.Ribbon>
+                    ):                        <div className='w-full flex justify-center items-center'>
+                    <Image
+                        className='shadow-lg rounded-lg'
+                        key={item.id}
+                        src={BASIC_URL +"element/"+ui+"/"+item.id}
+                        height={height}
+                        width={width}
+                        preview={false}
+                        onDoubleClick={(e)=>{handleDoubleClick(e,item.id)}}
+                        id={item.id}
+                        onDragEnd={(e)=>{handleDragEnd(e,item.id)}}
+                    />
+                </div>}:
                 </div>
 
                 )
